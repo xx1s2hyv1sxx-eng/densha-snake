@@ -271,25 +271,150 @@ function sound(){
   }catch(e){}
 }
 
-function box(x,y,w,h,color){
+function box(x,y,w,h,color,r=6){
   ctx.fillStyle=color;
   ctx.beginPath();
-  ctx.roundRect(x,y,w,h,6);
+  ctx.roundRect(x,y,w,h,r);
   ctx.fill();
 }
 
+function directionAngle(direction){
+  return {
+    right:0,
+    down:Math.PI/2,
+    left:Math.PI,
+    up:-Math.PI/2
+  }[direction]||0;
+}
+
+function linkedDirection(from,to){
+  let dx=to.x-from.x;
+  let dy=to.y-from.y;
+  if(Math.abs(dx)>1)dx=dx>0?dx-GRID:dx+GRID;
+  if(Math.abs(dy)>1)dy=dy>0?dy-GRID:dy+GRID;
+  if(dx===1&&dy===0)return "right";
+  if(dx===-1&&dy===0)return "left";
+  if(dx===0&&dy===1)return "down";
+  if(dx===0&&dy===-1)return "up";
+  return null;
+}
+
+function segmentDirection(i){
+  if(i===0)return dir;
+  return linkedDirection(snake[i],snake[i-1])
+    || (i<snake.length-1&&linkedDirection(snake[i+1],snake[i]))
+    || dir;
+}
+
+function vehicleTransform(s,direction,paint){
+  ctx.save();
+  ctx.translate((s.x+0.5)*CELL,(s.y+0.5)*CELL);
+  ctx.rotate(directionAngle(direction));
+  paint();
+  ctx.restore();
+}
+
+function drawBulletHead(){
+  ctx.fillStyle="#f9fdff";
+  ctx.strokeStyle="#b8cfdd";
+  ctx.lineWidth=1.2;
+  ctx.beginPath();
+  ctx.moveTo(-12,-11);
+  ctx.lineTo(1,-11);
+  ctx.bezierCurveTo(8,-11,13,-6,14,0);
+  ctx.bezierCurveTo(13,6,8,11,1,11);
+  ctx.lineTo(-12,11);
+  ctx.quadraticCurveTo(-14,11,-14,8);
+  ctx.lineTo(-14,-8);
+  ctx.quadraticCurveTo(-14,-11,-12,-11);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle="#1c5c92";
+  ctx.beginPath();
+  ctx.moveTo(2,-8);
+  ctx.bezierCurveTo(7,-8,10,-5,11,-2);
+  ctx.lineTo(2,-3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(2,8);
+  ctx.bezierCurveTo(7,8,10,5,11,2);
+  ctx.lineTo(2,3);
+  ctx.closePath();
+  ctx.fill();
+
+  box(-12,2,21,4,"#2d87d3",2);
+  box(-9,-7,6,6,"#9bd7ef",2);
+  box(-1,-7,3,6,"#9bd7ef",1.5);
+  box(10,-1,3,2,"#ffe47a",1);
+}
+
+function drawBulletCar(isTail){
+  box(-13,-11,26,22,"#b8cfdd",6);
+  box(-12,-10,24,20,"#f9fdff",5);
+  box(-11,2,22,4,"#2d87d3",2);
+  box(-8,-7,6,6,"#9bd7ef",2);
+  box(1,-7,6,6,"#9bd7ef",2);
+  if(isTail){
+    ctx.fillStyle="#d9e7ef";
+    ctx.beginPath();
+    ctx.arc(-10,0,2,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawLocalHead(){
+  box(-13,-12,26,24,"#c96522",5);
+  box(-12,-11,24,22,"#ffc451",4);
+  box(-11,4,22,5,"#ef762f",2);
+  box(3,-8,8,16,"#255d7d",3);
+  box(-8,-8,8,7,"#a8dded",2);
+  box(-8,1,8,7,"#a8dded",2);
+  box(10,-9,2,4,"#fff0a0",1);
+  box(10,5,2,4,"#fff0a0",1);
+}
+
+function drawLocalCar(isTail){
+  box(-13,-12,26,24,"#c96522",5);
+  box(-12,-11,24,22,"#ffc451",4);
+  box(-11,4,22,5,"#ef762f",2);
+  box(-9,-8,7,7,"#a8dded",2);
+  box(1,-8,7,7,"#a8dded",2);
+  box(9,-8,2,16,"#f3a23d",1);
+  if(isTail)box(-11,-2,2,4,"#fff0a0",1);
+}
+
 function drawTrain(s,i){
-  const x=s.x*CELL,y=s.y*CELL;
-  box(x+3,y+3,24,24,skin==="bullet"?"white":"#ffda79");
-  box(x+4,y+17,22,4,skin==="bullet"?"#3489d4":"#f38a3f");
-  if(i===0){
-    ctx.font="19px serif";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
-    ctx.fillText(skin==="bullet"?"🚄":"🚃",x+15,y+15);
-  }else{
-    box(x+7,y+7,6,8,"#7bc3e8");
-    box(x+17,y+7,6,8,"#7bc3e8");
+  const direction=segmentDirection(i);
+  vehicleTransform(s,direction,()=>{
+    const isHead=i===0;
+    const isTail=i===snake.length-1;
+    if(skin==="bullet"){
+      isHead?drawBulletHead():drawBulletCar(isTail);
+    }else{
+      isHead?drawLocalHead():drawLocalCar(isTail);
+    }
+  });
+}
+
+function drawConnections(){
+  ctx.strokeStyle=skin==="bullet"?"#5b7180":"#8a552f";
+  ctx.lineWidth=5;
+  ctx.lineCap="round";
+  for(let i=1;i<snake.length;i++){
+    const from=snake[i];
+    const to=snake[i-1];
+    const direction=linkedDirection(from,to);
+    if(!direction)continue;
+    const dx=Math.abs(to.x-from.x);
+    const dy=Math.abs(to.y-from.y);
+    if(dx>1||dy>1)continue;
+    ctx.beginPath();
+    ctx.moveTo((from.x+0.5)*CELL,(from.y+0.5)*CELL);
+    ctx.lineTo((to.x+0.5)*CELL,(to.y+0.5)*CELL);
+    ctx.stroke();
   }
 }
 
@@ -316,9 +441,10 @@ function draw(){
       (food.y+0.5)*CELL);
   }
 
-  snake.slice().reverse().forEach((s,i)=>{
-    drawTrain(s,snake.length-i-1);
-  });
+  drawConnections();
+  for(let i=snake.length-1;i>=0;i--){
+    drawTrain(snake[i],i);
+  }
 
   if(!running||paused){
     ctx.fillStyle="#ffffffbb";
@@ -338,3 +464,4 @@ draw();
 </script>
 </body>
 </html>
+
