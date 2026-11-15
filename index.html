@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#dff4ff">
+<title>でんしゃスネーク</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#dff4ff;font-family:-apple-system,"Hiragino Sans",sans-serif;color:#244765;text-align:center}
+.app{max-width:480px;margin:auto;padding:12px}
+h1{font-size:27px;margin:8px 0}
+p{font-size:14px;margin:5px 0 12px}
+.card{background:white;border-radius:20px;padding:12px;box-shadow:0 5px 15px #7da4bb33}
+.row{display:flex;gap:8px;margin:9px 0}
+button{border:0;border-radius:12px;padding:12px 6px;font-size:16px;font-weight:bold;background:#e8eff7;color:#244765;touch-action:manipulation}
+.row button{flex:1;min-height:49px}
+button.active{background:#3489d4;color:white}
+#start{background:#20ad69;color:white}
+.score{display:flex;justify-content:space-around;font-size:18px;font-weight:bold;margin:12px}
+canvas{display:block;width:100%;aspect-ratio:1;background:#dbf5d4;border:5px solid #88c783;border-radius:15px;touch-action:none}
+#message{font-weight:bold;min-height:27px;margin-top:10px}
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:260px;margin:10px auto}
+.controls button{height:58px;background:#ffe49b;font-size:25px}
+.help{font-size:12px;color:#607789}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>🚄 でんしゃスネーク</h1>
+<p>ほしをあつめて なが〜いれっしゃにしよう！</p>
+<div class="card">
+
+<div class="row">
+<button id="easy" class="active">🌼 やさしい</button>
+<button id="normal">🔥 ふつう</button>
+</div>
+
+<div class="row">
+<button id="bullet" class="active">🚄 しんかんせん</button>
+<button id="train">🚃 でんしゃ</button>
+</div>
+
+<div class="row">
+<button id="start">▶ あそぶ！</button>
+<button id="pause">⏸ とめる</button>
+</div>
+
+<div class="score">
+<span>⭐ <span id="score">0</span>こ</span>
+<span>🏆 <span id="best">0</span>こ</span>
+</div>
+
+<canvas id="game" width="420" height="420"></canvas>
+<div id="message">あそぶ！を おしてね</div>
+
+<div class="controls">
+<span></span>
+<button data-dir="up">⬆️</button>
+<span></span>
+<button data-dir="left">⬅️</button>
+<button data-dir="down">⬇️</button>
+<button data-dir="right">➡️</button>
+</div>
+
+<div class="help">スワイプでもうごくよ！</div>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const $=id=>document.getElementById(id);
+const GRID=14;
+const CELL=30;
+
+let mode="easy";
+let skin="bullet";
+let snake=[];
+let food=null;
+let dir="right";
+let nextDir="right";
+let score=0;
+let best=0;
+let running=false;
+let paused=false;
+let dead=false;
+let locked=false;
+let timer=null;
+
+try {
+  best=Number(localStorage.getItem("densha-best"))||0;
+}catch(e){}
+$("best").textContent=best;
+
+function choose(type,value){
+  if(type==="mode") mode=value;
+  else skin=value;
+  const ids=type==="mode"
+    ? ["easy","normal"]
+    : ["bullet","train"];
+  ids.forEach(id=>$(id).classList.toggle("active",id===value));
+  draw();
+}
+
+$("easy").onclick=()=>choose("mode","easy");
+$("normal").onclick=()=>choose("mode","normal");
+$("bullet").onclick=()=>choose("skin","bullet");
+$("train").onclick=()=>choose("skin","train");
+
+function placeFood(){
+  const free=[];
+  for(let y=0;y<GRID;y++){
+    for(let x=0;x<GRID;x++){
+      if(!snake.some(s=>s.x===x&&s.y===y)){
+        free.push({x,y});
+      }
+    }
+  }
+  food=free.length
+    ? free[Math.floor(Math.random()*free.length)]
+    : null;
+  if(!food){
+    running=false;
+    clearInterval(timer);
+    $("message").textContent="ぜんぶつながった！おめでとう！";
+  }
+}
+
+function startGame(){
+  clearInterval(timer);
+  snake=[{x:3,y:7},{x:2,y:7},{x:1,y:7}];
+  dir="right";
+  nextDir="right";
+  score=0;
+  locked=false;
+  running=true;
+  paused=false;
+  dead=false;
+  $("score").textContent=score;
+  $("pause").textContent="⏸ とめる";
+  $("message").textContent="⭐を とりにいこう！";
+  placeFood();
+  timer=setInterval(update,mode==="easy"?320:190);
+  draw();
+}
+
+$("start").onclick=startGame;
+$("pause").onclick=()=>{
+  if(!running)return;
+  paused=!paused;
+  $("pause").textContent=paused?"▶ つづける":"⏸ とめる";
+  draw();
+};
+
+function changeDir(d){
+  const opposite={
+    up:"down",down:"up",left:"right",right:"left"
+  };
+  if(running&&!paused&&!locked&&opposite[dir]!==d){
+    nextDir=d;
+    locked=true;
+  }
+}
+
+document.querySelectorAll("[data-dir]").forEach(btn=>{
+  btn.onclick=()=>changeDir(btn.dataset.dir);
+});
+
+document.addEventListener("keydown",e=>{
+  const d={
+    ArrowUp:"up",ArrowDown:"down",
+    ArrowLeft:"left",ArrowRight:"right"
+  }[e.key];
+  if(d){e.preventDefault();changeDir(d);}
+});
+
+let touchX=0,touchY=0;
+canvas.addEventListener("touchstart",e=>{
+  touchX=e.changedTouches[0].clientX;
+  touchY=e.changedTouches[0].clientY;
+},{passive:true});
+
+canvas.addEventListener("touchend",e=>{
+  const dx=e.changedTouches[0].clientX-touchX;
+  const dy=e.changedTouches[0].clientY-touchY;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<20)return;
+  changeDir(Math.abs(dx)>Math.abs(dy)
+    ? (dx>0?"right":"left")
+    : (dy>0?"down":"up"));
+},{passive:true});
+
+function update(){
+  if(!running||paused)return;
+  dir=nextDir;
+  locked=false;
+  let h={...snake[0]};
+  if(dir==="up")h.y--;
+  if(dir==="down")h.y++;
+  if(dir==="left")h.x--;
+  if(dir==="right")h.x++;
+
+  if(mode==="easy"){
+    h.x=(h.x+GRID)%GRID;
+    h.y=(h.y+GRID)%GRID;
+  }else{
+    if(h.x<0||h.y<0||h.x>=GRID||h.y>=GRID){
+      return endGame();
+    }
+  }
+
+  let eat=food&&h.x===food.x&&h.y===food.y;
+  const body=snake.slice(0,eat?snake.length:-1);
+  const hit=body.some(s=>s.x===h.x&&s.y===h.y);
+
+  if(hit&&mode==="normal")return endGame();
+  if(hit){
+    // やさしいモードでは車両にぶつかっても続行
+    const safe=[];
+    for(let y=0;y<GRID;y++){
+      for(let x=0;x<GRID;x++){
+        if(!body.some(s=>s.x===x&&s.y===y)){
+          safe.push({x,y});
+        }
+      }
+    }
+    if(!safe.length)return;
+    h=safe[Math.floor(Math.random()*safe.length)];
+    eat=food&&h.x===food.x&&h.y===food.y;
+  }
+
+  snake.unshift(h);
+  if(eat){
+    score++;
+    $("score").textContent=score;
+    $("message").textContent="やったー！ 1りょうふえた！";
+    if(score>best){
+      best=score;
+      $("best").textContent=best;
+      try{localStorage.setItem("densha-best",best);}catch(e){}
+    }
+    sound();
+    placeFood();
+  }else{
+    snake.pop();
+  }
+  draw();
+}
+
+function endGame(){
+  running=false;
+  dead=true;
+  clearInterval(timer);
+  $("message").textContent="もういちど あそぼう！";
+  draw();
+}
+
+function sound(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    const a=new AC();
+    const o=a.createOscillator();
+    const g=a.createGain();
+    o.frequency.value=720;
+    g.gain.value=0.035;
+    o.connect(g);
+    g.connect(a.destination);
+    o.start();
+    o.stop(a.currentTime+0.12);
+    o.onended=()=>a.close();
+  }catch(e){}
+}
+
+function box(x,y,w,h,color){
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.roundRect(x,y,w,h,6);
+  ctx.fill();
+}
+
+function drawTrain(s,i){
+  const x=s.x*CELL,y=s.y*CELL;
+  box(x+3,y+3,24,24,skin==="bullet"?"white":"#ffda79");
+  box(x+4,y+17,22,4,skin==="bullet"?"#3489d4":"#f38a3f");
+  if(i===0){
+    ctx.font="19px serif";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.fillText(skin==="bullet"?"🚄":"🚃",x+15,y+15);
+  }else{
+    box(x+7,y+7,6,8,"#7bc3e8");
+    box(x+17,y+7,6,8,"#7bc3e8");
+  }
+}
+
+function draw(){
+  ctx.fillStyle="#def5d4";
+  ctx.fillRect(0,0,420,420);
+  ctx.strokeStyle="#c6e7c1";
+  ctx.lineWidth=1;
+  for(let i=1;i<GRID;i++){
+    ctx.beginPath();
+    ctx.moveTo(i*CELL,0);
+    ctx.lineTo(i*CELL,420);
+    ctx.moveTo(0,i*CELL);
+    ctx.lineTo(420,i*CELL);
+    ctx.stroke();
+  }
+
+  if(food){
+    ctx.font="25px serif";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.fillText("⭐",
+      (food.x+0.5)*CELL,
+      (food.y+0.5)*CELL);
+  }
+
+  snake.slice().reverse().forEach((s,i)=>{
+    drawTrain(s,snake.length-i-1);
+  });
+
+  if(!running||paused){
+    ctx.fillStyle="#ffffffbb";
+    ctx.fillRect(0,0,420,420);
+    ctx.fillStyle="#285070";
+    ctx.font="bold 27px sans-serif";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.fillText(
+      paused?"おやすみちゅう":
+      dead?"もういっかい！":"🚄 しゅっぱつ！",
+      210,210
+    );
+  }
+}
+draw();
+</script>
+</body>
+</html>
