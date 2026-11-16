@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#e8f7ff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="でんしゃスネーク"><title>でんしゃスネーク Ver.3.5</title><style>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#e8f7ff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="でんしゃスネーク"><title>でんしゃスネーク Ver.3.6</title><style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#244463;background:#e8f7ff}*{box-sizing:border-box}body{margin:0;overscroll-behavior:none}.app{max-width:540px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom));text-align:center}h1{font-size:clamp(24px,6vw,31px);margin:4px 0}p{margin:5px 0 10px;font-size:14px}.panel{background:white;border-radius:20px;padding:12px;box-shadow:0 5px 18px #5d91b321}.choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:9px 0}button{touch-action:manipulation;cursor:pointer;font:inherit;border:0;border-radius:15px;font-weight:800;min-height:48px;padding:8px;background:#e9eff8;color:#244463}button:focus-visible{outline:3px solid #266bd0;outline-offset:2px}.chosen{background:#2576d9;color:#fff}.play{width:100%;background:#21a866;color:white;font-size:19px;margin:4px 0 10px}.stats{display:flex;justify-content:space-between;gap:10px;font-weight:800;margin:5px 0 10px}.stats span{background:#f0f8ff;border-radius:10px;flex:1;padding:7px}canvas{display:block;width:100%;aspect-ratio:1;border:5px solid #76c99b;border-radius:14px;background:#e6f7db;touch-action:none}.msg{font-weight:800;min-height:27px;margin:10px 0 2px}.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:290px;margin:10px auto 0}.pad button{background:#ffdf77;font-size:25px;min-height:54px}.pad .none{visibility:hidden}.tiny{color:#596b7b;font-size:12px;line-height:1.5;margin-top:8px}.pause{background:#e9eff8}.row{display:flex;gap:8px}.row>*{flex:1}@media(max-height:740px){.pad button{min-height:45px}.app{padding-top:5px}.panel{padding:9px}h1{margin:0;font-size:24px}.choices{margin:6px 0}}
 
 /* Ver.3: 6 train choices, friendly iPhone layout */
@@ -47,7 +47,7 @@ canvas{border:5px solid #0b83d8;outline:3px solid #c4eeff;border-radius:18px;bac
 @media(max-width:365px){.train-choices{gap:5px}.train-choices button{min-height:85px}.train-pic{transform:scale(1)}.train-name{font-size:10px}.pad button{min-height:50px}}
 @media(max-height:740px){.train-choices button{min-height:85px}.pad button{min-height:49px}}
 
-/* Ver.3.5: detailed train artwork in the selection cards */
+/* Ver.3.6: detailed train artwork in the selection cards */
 .train-choices button{position:relative;overflow:hidden;isolation:isolate}
 .train-choices button:before{content:"";position:absolute;inset:0 0 45%;background:linear-gradient(160deg,#fff9,#b7e7ff26);pointer-events:none;z-index:-1}
 .train-art{display:block;width:100%;height:48px;max-width:145px;overflow:visible;filter:drop-shadow(0 3px 2px #31577a55)}
@@ -66,7 +66,7 @@ canvas{border:5px solid #0b83d8;outline:3px solid #c4eeff;border-radius:18px;bac
 .train-name{font-size:clamp(11px,3vw,13px);font-weight:800}
 @media(max-width:365px){.train-choices button{min-height:105px}.train-art{height:58px}}
 
-/* Ver.3.5: three difficulty buttons, designed for narrow iPhone screens */
+/* Ver.3.6: three difficulty buttons, designed for narrow iPhone screens */
 .choices{gap:5px;padding:5px}
 .choices button{min-width:0;padding:7px 1px;font-size:clamp(11px,3vw,14px);white-space:nowrap}
 </style></head><body><main class="app"><h1>🚄 でんしゃスネーク</h1><p>⭐をあつめて れっしゃをながくしよう！</p><section class="panel"><div class="choices"><button type="button" id="easy" class="chosen" aria-pressed="true">🌼 やさしい</button><button type="button" id="normal" aria-pressed="false">🚄 ふつう</button><button type="button" id="hard" aria-pressed="false">🔥 むずかしい</button></div><div class="train-choices" id="trainChoices" aria-label="でんしゃをえらぶ">
@@ -76,9 +76,9 @@ canvas{border:5px solid #0b83d8;outline:3px solid #c4eeff;border-radius:18px;bac
 <button type="button" data-skin="hayabusa" aria-pressed="false"><span class="train-pic" style="--body:#1bb690;--stripe:#f15da2"></span><span class="train-name">はやぶさ</span></button>
 <button type="button" data-skin="komachi" aria-pressed="false"><span class="train-pic" style="--body:#eb383c;--stripe:#ffffff"></span><span class="train-name">こまち</span></button>
 <button type="button" data-skin="sl" aria-pressed="false"><span class="train-pic sl" style="--body:#303943;--stripe:#9e6f36"></span><span class="train-name">SL</span></button>
-</div><div class="row"><button type="button" id="start" class="play">▶ あそぶ！</button><button type="button" id="pause" class="pause">⏸ とめる</button></div><div class="stats"><span>⭐ <b id="score">0</b> こ</span><span>🏆 <b id="best">0</b> こ</span></div><canvas id="board" width="420" height="420" aria-label="でんしゃのゲーム盤"></canvas><div class="msg" id="msg" aria-live="polite">「あそぶ！」をおしてね</div><div class="pad"><div class="none"></div><button type="button" data-dir="up" aria-label="うえ">▲</button><div class="none"></div><button type="button" data-dir="left" aria-label="ひだり">◀</button><button type="button" data-dir="down" aria-label="した">▼</button><button type="button" data-dir="right" aria-label="みぎ">▶</button></div><div class="tiny">Ver.3.5 · 14×14 マス　|　がめんをスワイプしても うごかせるよ。<br>やさしい：ゆっくり・星3つ ／ ふつう：今までのやさしい ／ むずかしい：ぶつかるとおわり</div></section></main><script>
+</div><div class="row"><button type="button" id="start" class="play">▶ あそぶ！</button><button type="button" id="pause" class="pause">⏸ とめる</button></div><div class="stats"><span>⭐ <b id="score">0</b> こ</span><span>🏆 <b id="best">0</b> こ</span></div><canvas id="board" width="420" height="420" aria-label="でんしゃのゲーム盤"></canvas><div class="msg" id="msg" aria-live="polite">「あそぶ！」をおしてね</div><div class="pad"><div class="none"></div><button type="button" data-dir="up" aria-label="うえ">▲</button><div class="none"></div><button type="button" data-dir="left" aria-label="ひだり">◀</button><button type="button" data-dir="down" aria-label="した">▼</button><button type="button" data-dir="right" aria-label="みぎ">▶</button></div><div class="tiny">Ver.3.6 · 14×14 マス　|　がめんをスワイプしても うごかせるよ。<br>やさしい：ゆっくり・星3つ ／ ふつう：今までのやさしい ／ むずかしい：ぶつかるとおわり</div></section></main><script>
 (()=>{'use strict';const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d');const N=14,C=420/N;let mode='easy',skin='bullet',snake=[],foods=[],dir='right',queued='right',score=0,best=0,active=false,paused=false,dead=false,timer=null,locked=false;try{best=Number(localStorage.getItem('densha-best')||0)||0}catch{}$('best').textContent=best;
-const speeds={easy:530,normal:320,hard:190};
+const speeds={easy:700,normal:320,hard:190};
 function desiredStars(){return mode==='easy'?3:1}
 function select(group,val){if(group==='mode'){
  mode=val;
@@ -194,7 +194,7 @@ function directionTo(from,to){if(!to)return null;let dx=to.x-from.x,dy=to.y-from
  if(dx>0)return 'right';if(dx<0)return 'left';if(dy>0)return 'down';if(dy<0)return 'up';return null}
 function segmentHeading(i){if(i===0)return dir;return directionTo(snake[i],snake[i-1])||dir}
 
-/* Ver.3.5 – redesigned PLAYING-FIELD sprites. Selection illustrations intentionally unchanged. */
+/* Ver.3.6 – redesigned PLAYING-FIELD sprites. Selection illustrations intentionally unchanged. */
 function shape(path,fill,stroke,width=1){
  ctx.beginPath();path(ctx);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke()}
 }
